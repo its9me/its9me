@@ -1,0 +1,6 @@
+{
+  "name": "Recon Command Generator",
+  "description": "Generate automated reconnaissance commands.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
