@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Play, Copy, Terminal, Server, Globe2, Shield, Search, Database, Target, Github, Plus, Edit2, Trash2, Check, X, Search as SearchIcon, FileCode, Link, Save, BookOpen, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
@@ -50,6 +50,15 @@ const ReconApp = () => {
         }
       };
     });
+  };
+
+  const clearMethodologyProgress = () => {
+     const currentDomainKey = (domain.trim() || 'default').toLowerCase();
+     setMethodologyProgress(prev => {
+        const next = { ...prev };
+        delete next[currentDomainKey];
+        return next;
+     });
   };
 
 
@@ -254,7 +263,7 @@ const ReconApp = () => {
      // Replace active wordlists
      if (selectedWordlists[cmdId]) {
        Object.entries(selectedWordlists[cmdId]).forEach(([target, link]) => {
-         t = t.replace(target, link);
+         t = t.split(target).join(String(link));
        });
      }
      
@@ -1031,9 +1040,19 @@ const ReconApp = () => {
                         <BookOpen className="w-5 h-5 text-amber-400" />
                         {language === 'en' ? defaultMethodology[activeMethodologyTopic].title.en : defaultMethodology[activeMethodologyTopic].title.ar}
                       </h2>
-                      <p className={cn("text-indigo-200/80 font-sans text-sm", language === 'ar' && "text-right")}>
+                      <p className={cn("text-indigo-200/80 font-sans text-sm md:w-3/4", language === 'ar' && "text-right md:ml-auto md:mr-0 pl-0 pr-0")}>
                         {language === 'en' ? defaultMethodology[activeMethodologyTopic].description.en : defaultMethodology[activeMethodologyTopic].description.ar}
                       </p>
+                    </div>
+                    
+                    <div className={cn("flex justify-end mb-4", language === 'ar' && "justify-start")}>
+                      <button
+                         onClick={clearMethodologyProgress}
+                         className="flex items-center gap-2 px-4 py-2 border border-rose-500/30 hover:bg-rose-500/10 text-rose-400 font-sans text-sm rounded-xl transition-all shadow-sm group"
+                      >
+                         <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                         {language === 'en' ? 'Reset Progress' : 'إعادة ضبط التقدم (Reset)'}
+                      </button>
                     </div>
 
                     <div className="space-y-6">

@@ -236,6 +236,21 @@ export const defaultCommandsData: CommandCategory[] = [
       ],
   },
   {
+      id: 'js-endpoint-extraction',
+      title: 'JS Endpoint Extraction & Source Maps',
+      iconName: 'FileCode',
+      description: {
+          en: 'Extract hidden API endpoints, routing tables, and reconstruct source code from JavaScript files.',
+          ar: 'استخراج الروابط (Endpoints) المخفية، المسارات، واستعادة الكود المصدري من ملفات الجافا سكريبت للهدف.'
+      },
+      commands: [
+          { id: 'linkfinder', tool: 'LinkFinder', cmdTemplate: `python3 linkfinder.py -i https://{target}/app.js -o cli` },
+          { id: 'grep-endpoints', tool: 'Grep (Endpoints)', cmdTemplate: `grep -RoE "(?:\\'|\\\")[a-zA-Z0-9_\\\\-\\\\/]+\\\\.php(?:\\'|\\\")" js_files/` },
+          { id: 'grep-api', tool: 'Grep (API)', cmdTemplate: `grep -RoE "/api/[a-zA-Z0-9_\\\\-\\\\/]+" js_files/` },
+          { id: 'sourcemapper', tool: 'Sourcemapper', cmdTemplate: `sourcemapper -url https://{target}/static/js/main.js.map -output ./source` },
+      ],
+  },
+  {
       id: 'vuln-scan',
       title: 'Automated Vuln Scanning',
       iconName: 'Bug',
