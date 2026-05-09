@@ -6,6 +6,7 @@ import { defaultCommandsData, CommandCategory, Command } from './data/commands';
 import { defaultDorks, Dork } from './data/dorks';
 import { defaultPayloads, Payload } from './data/payloads';
 import { defaultMethodology, MethodologyTopic } from './data/methodology';
+import { defaultSearchQueries, SearchQuery } from './data/searchEngines';
 
 const Icons: Record<string, React.ElementType> = {
   Globe2, Search, Terminal, Server, Database, Shield, Play, Target, BookOpen, Layers
@@ -13,7 +14,7 @@ const Icons: Record<string, React.ElementType> = {
 
 const ReconApp = () => {
   const [domain, setDomain] = useState('');
-  const [activeTab, setActiveTab] = useState<'commands' | 'dorks' | 'payloads' | 'methodology'>('commands');
+  const [activeTab, setActiveTab] = useState<'commands' | 'dorks' | 'payloads' | 'methodology' | 'search_engines'>('commands');
   const [activeCategory, setActiveCategory] = useState<number | null>(0);
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
   const [language, setLanguage] = useState<'en' | 'ar'>('en');
@@ -23,19 +24,21 @@ const ReconApp = () => {
   // --- Methodology State ---
   const [activeMethodologyTopic, setActiveMethodologyTopic] = useState<number>(0);
   const [methodologyProgress, setMethodologyProgress] = useState<Record<string, Record<string, boolean>>>(() => {
-    const saved = localStorage.getItem('methodologyProgress_v1');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('methodologyProgress_v1');
+      if (saved) {
         return JSON.parse(saved);
-      } catch (e) {
-        return {};
       }
+    } catch (e) {
+      console.warn("localStorage is not available");
     }
     return {};
   });
 
   useEffect(() => {
-    localStorage.setItem('methodologyProgress_v1', JSON.stringify(methodologyProgress));
+    try {
+      localStorage.setItem('methodologyProgress_v1', JSON.stringify(methodologyProgress));
+    } catch (e) {}
   }, [methodologyProgress]);
 
   const toggleMethodologyItem = (itemId: string, checked: boolean) => {
@@ -64,13 +67,13 @@ const ReconApp = () => {
 
   // --- Commands State ---
   const [commandsCategories, setCommandsCategories] = useState<CommandCategory[]>(() => {
-    const saved = localStorage.getItem('commandsCategories_v5');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('commandsCategories_v5');
+      if (saved) {
         return JSON.parse(saved);
-      } catch (e) {
-        return defaultCommandsData;
       }
+    } catch (e) {
+      console.warn("localStorage is not available");
     }
     return defaultCommandsData;
   });
@@ -80,18 +83,20 @@ const ReconApp = () => {
   const [editCmdTool, setEditCmdTool] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('commandsCategories_v5', JSON.stringify(commandsCategories));
+    try {
+      localStorage.setItem('commandsCategories_v5', JSON.stringify(commandsCategories));
+    } catch (e) {}
   }, [commandsCategories]);
 
   // --- Dorks State ---
   const [dorks, setDorks] = useState<Dork[]>(() => {
-    const saved = localStorage.getItem('customDorks_v2');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('customDorks_v2');
+      if (saved) {
         return [...defaultDorks, ...JSON.parse(saved)];
-      } catch (e) {
-        return defaultDorks;
       }
+    } catch (e) {
+      console.warn("localStorage is not available");
     }
     return defaultDorks;
   });
@@ -115,19 +120,21 @@ const ReconApp = () => {
   }, [dorks, selectedDorkCategory]);
 
   useEffect(() => {
-    const customDorks = dorks.filter(d => d.isCustom);
-    localStorage.setItem('customDorks_v2', JSON.stringify(customDorks));
+    try {
+      const customDorks = dorks.filter(d => d.isCustom);
+      localStorage.setItem('customDorks_v2', JSON.stringify(customDorks));
+    } catch (e) {}
   }, [dorks]);
 
   // --- Payloads State ---
   const [payloads, setPayloads] = useState<Payload[]>(() => {
-    const saved = localStorage.getItem('customPayloads_v3');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('customPayloads_v3');
+      if (saved) {
         return [...defaultPayloads, ...JSON.parse(saved)];
-      } catch (e) {
-        return defaultPayloads;
       }
+    } catch (e) {
+      console.warn("localStorage is not available");
     }
     return defaultPayloads;
   });
@@ -155,6 +162,79 @@ const ReconApp = () => {
     const customPayloads = payloads.filter(p => p.isCustom);
     localStorage.setItem('customPayloads_v3', JSON.stringify(customPayloads));
   }, [payloads]);
+
+  // --- Search Engines State ---
+  const [searchEnginesQueries, setSearchEnginesQueries] = useState<SearchQuery[]>(() => {
+    try {
+      const saved = localStorage.getItem('searchEnginesQueries_v1');
+      if (saved) {
+        return [...defaultSearchQueries, ...JSON.parse(saved)];
+      }
+    } catch (e) {
+      console.warn("localStorage is not available");
+    }
+    return defaultSearchQueries;
+  });
+
+  const [isAddingSearchQuery, setIsAddingSearchQuery] = useState(false);
+  const [editingSearchQuery, setEditingSearchQuery] = useState<string | null>(null);
+  const [newSearchQueryName, setNewSearchQueryName] = useState('');
+  const [newSearchQueryStr, setNewSearchQueryStr] = useState('');
+  const [newSearchQueryEngine, setNewSearchQueryEngine] = useState<'Shodan' | 'FOFA' | 'Censys'>('Shodan');
+  const [newSearchQueryCategory, setNewSearchQueryCategory] = useState('');
+  const [newSearchQueryDescription, setNewSearchQueryDescription] = useState('');
+  
+  const [selectedSearchQueryCategory, setSelectedSearchQueryCategory] = useState<string>('All');
+
+  const searchQueryCategories = useMemo(() => {
+    const cats = new Set(searchEnginesQueries.map(q => q.category).filter(Boolean) as string[]);
+    return ['All', ...Array.from(cats)];
+  }, [searchEnginesQueries]);
+
+  const filteredSearchQueries = useMemo(() => {
+    if (selectedSearchQueryCategory === 'All') return searchEnginesQueries;
+    return searchEnginesQueries.filter(q => q.category === selectedSearchQueryCategory);
+  }, [searchEnginesQueries, selectedSearchQueryCategory]);
+
+  useEffect(() => {
+    try {
+      const customSearchQueries = searchEnginesQueries.filter(q => q.isCustom);
+      localStorage.setItem('searchEnginesQueries_v1', JSON.stringify(customSearchQueries));
+    } catch (e) {}
+  }, [searchEnginesQueries]);
+
+  const handleSaveSearchQuery = () => {
+    if (!newSearchQueryName.trim() || !newSearchQueryStr.trim()) return;
+    if (editingSearchQuery) {
+      setSearchEnginesQueries(searchEnginesQueries.map(q => 
+        q.id === editingSearchQuery ? { ...q, name: newSearchQueryName, query: newSearchQueryStr, engine: newSearchQueryEngine, category: newSearchQueryCategory, description: newSearchQueryDescription } : q
+      ));
+    } else {
+      setSearchEnginesQueries([...searchEnginesQueries, {
+        id: Date.now().toString(),
+        name: newSearchQueryName,
+        query: newSearchQueryStr,
+        engine: newSearchQueryEngine,
+        category: newSearchQueryCategory,
+        description: newSearchQueryDescription,
+        isCustom: true
+      }]);
+    }
+    setIsAddingSearchQuery(false);
+    setEditingSearchQuery(null);
+  };
+
+  const startEditSearchQuery = (query: SearchQuery) => {
+    setEditingSearchQuery(query.id);
+    setNewSearchQueryName(query.name);
+    setNewSearchQueryStr(query.query);
+    setNewSearchQueryEngine(query.engine);
+    setNewSearchQueryCategory(query.category || '');
+    setNewSearchQueryDescription(query.description || '');
+    setIsAddingSearchQuery(true);
+  };
+
+  const deleteSearchQuery = (id: string) => setSearchEnginesQueries(searchEnginesQueries.filter(q => q.id !== id));
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -360,6 +440,16 @@ const ReconApp = () => {
                {language === 'en' ? 'Google Dorks' : 'دوركات جوجل'}
              </button>
              <button
+               onClick={() => setActiveTab('search_engines')}
+               className={cn(
+                 "px-4 py-2 border-b-2 font-sans font-medium transition-all text-sm uppercase tracking-wider flex items-center gap-2",
+                 activeTab === 'search_engines' ? "border-sky-400 text-sky-300" : "border-transparent text-indigo-300/70 hover:text-indigo-200"
+               )}
+             >
+               <Globe2 className="w-4 h-4" />
+               {language === 'en' ? 'Shodan & FOFA' : 'شودان وفوفا'}
+             </button>
+             <button
                onClick={() => setActiveTab('payloads')}
                className={cn(
                  "px-4 py-2 border-b-2 font-sans font-medium transition-all text-sm uppercase tracking-wider flex items-center gap-2",
@@ -546,39 +636,61 @@ const ReconApp = () => {
 
         {/* Google Dorks Section */}
         {activeTab === 'dorks' && (
-          <div className="space-y-6">
-            <div className={cn("flex flex-col md:flex-row justify-between items-start md:items-center gap-4", language === 'ar' && "md:flex-row-reverse")}>
-               <div>
-                  <h2 className={cn("text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-indigo-400", language === 'ar' && "text-right")}>
-                    {language === 'en' ? 'Google Dorks' : 'دوركات جوجل'}
-                  </h2>
-                  <p className={cn("text-indigo-300/70 font-sans mt-1", language === 'ar' && "text-right")}>
-                    {language === 'en' ? 'Advanced search queries to find sensitive information' : 'استعلامات بحث متقدمة للعثور على معلومات حساسة'}
-                  </p>
-               </div>
-               <div className={cn("flex flex-col sm:flex-row gap-3 w-full md:w-auto", language === 'ar' && "sm:flex-row-reverse")}>
-                 {dorkCategories.length > 1 && (
-                   <select
-                     value={selectedDorkCategory}
-                     onChange={(e) => setSelectedDorkCategory(e.target.value)}
-                     className={cn("bg-black/40 border border-fuchsia-500/20 rounded-lg px-3 py-2 text-white font-sans text-sm focus:outline-none focus:border-fuchsia-500", language === 'ar' && "text-right")}
-                   >
-                     {dorkCategories.map(cat => (
-                       <option key={cat} value={cat}>
-                         {cat === 'All' ? (language === 'en' ? 'All Categories' : 'جميع الفئات') : cat}
-                       </option>
-                     ))}
-                   </select>
-                 )}
-                 <button
-                    onClick={() => { setIsAddingDork(true); setEditingDork(null); setNewDorkName(''); setNewDorkQuery(''); setNewDorkCategory(''); setNewDorkDescription(''); }}
-                    className={cn("flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white rounded-lg font-sans transition-all shadow-lg shadow-fuchsia-500/20", language === 'ar' && "flex-row-reverse")}
+          <div className="grid md:grid-cols-12 gap-6 lg:gap-8">
+            {/* Sidebar / Navigation */}
+            <div className="md:col-span-4 lg:col-span-3 space-y-2 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
+              {dorkCategories.map((cat, idx) => {
+                const isActive = selectedDorkCategory === cat;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedDorkCategory(cat)}
+                    className={cn(
+                      "w-full text-left px-4 py-3 rounded-xl transition-all duration-200 group flex justify-between items-center",
+                      isActive 
+                        ? "bg-gradient-to-r from-fuchsia-600/20 to-indigo-600/20 border border-fuchsia-500/50 shadow-[0_0_15px_rgba(217,70,239,0.1)] text-fuchsia-200" 
+                        : "bg-white/5 border border-white/5 text-indigo-300 hover:bg-white/10 hover:border-white/10 hover:text-white"
+                    )}
                   >
-                    <Plus className="w-4 h-4" />
-                    {language === 'en' ? 'Add Custom Dork' : 'إضافة دورك مخصص'}
+                    <div className={cn("flex items-center gap-3", language === 'ar' && "flex-row-reverse text-right")}>
+                      <span className="font-semibold truncate font-sans text-sm block">
+                        {cat === 'All' ? (language === 'en' ? 'All Categories' : 'جميع الفئات') : cat}
+                      </span>
+                    </div>
+                    <span className={cn(
+                      "text-xs px-2.5 py-0.5 rounded-md font-sans border flex-shrink-0",
+                      isActive 
+                        ? "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30" 
+                        : "bg-white/5 text-indigo-400 group-hover:text-white group-hover:bg-white/20 border-white/10 group-hover:border-white/20"
+                    )}>
+                      {cat === 'All' ? dorks.length : dorks.filter(d => d.category === cat).length}
+                    </span>
                   </button>
-               </div>
+                );
+              })}
             </div>
+
+            {/* Main Content Area */}
+            <div className="md:col-span-8 lg:col-span-9 space-y-6">
+              <div className={cn("flex flex-col md:flex-row justify-between items-start md:items-center gap-4", language === 'ar' && "md:flex-row-reverse")}>
+                 <div>
+                    <h2 className={cn("text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-indigo-400", language === 'ar' && "text-right")}>
+                      {language === 'en' ? 'Google Dorks' : 'دوركات جوجل'}
+                    </h2>
+                    <p className={cn("text-indigo-300/70 font-sans mt-1", language === 'ar' && "text-right")}>
+                      {language === 'en' ? 'Advanced search queries to find sensitive information' : 'استعلامات بحث متقدمة للعثور على معلومات حساسة'}
+                    </p>
+                 </div>
+                 <div className={cn("flex w-full md:w-auto", language === 'ar' && "justify-end")}>
+                   <button
+                      onClick={() => { setIsAddingDork(true); setEditingDork(null); setNewDorkName(''); setNewDorkQuery(''); setNewDorkCategory(selectedDorkCategory === 'All' ? '' : selectedDorkCategory); setNewDorkDescription(''); }}
+                      className={cn("flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-white rounded-lg font-sans transition-all shadow-lg shadow-fuchsia-500/20", language === 'ar' && "flex-row-reverse")}
+                    >
+                      <Plus className="w-4 h-4" />
+                      {language === 'en' ? 'Add Custom Dork' : 'إضافة دورك مخصص'}
+                    </button>
+                 </div>
+              </div>
 
             {/* Add/Edit Dork Form */}
             <AnimatePresence>
@@ -757,6 +869,266 @@ const ReconApp = () => {
                   </code>
                </div>
              </div>
+            </div> {/* End Main Content Area */}
+          </div>
+        )}
+
+        {/* Shodan & FOFA Section */}
+        {activeTab === 'search_engines' && (
+          <div className="grid md:grid-cols-12 gap-6 lg:gap-8">
+            {/* Sidebar / Navigation */}
+            <div className="md:col-span-4 lg:col-span-3 space-y-2 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
+              {searchQueryCategories.map((cat, idx) => {
+                const isActive = selectedSearchQueryCategory === cat;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedSearchQueryCategory(cat)}
+                    className={cn(
+                      "w-full text-left px-4 py-3 rounded-xl transition-all duration-200 group flex justify-between items-center",
+                      isActive 
+                        ? "bg-gradient-to-r from-sky-600/20 to-indigo-600/20 border border-sky-500/50 shadow-[0_0_15px_rgba(56,189,248,0.1)] text-sky-200" 
+                        : "bg-white/5 border border-white/5 text-indigo-300 hover:bg-white/10 hover:border-white/10 hover:text-white"
+                    )}
+                  >
+                    <div className={cn("flex items-center gap-3", language === 'ar' && "flex-row-reverse text-right")}>
+                      <span className="font-semibold truncate font-sans text-sm block">
+                        {cat === 'All' ? (language === 'en' ? 'All Categories' : 'جميع الفئات') : cat}
+                      </span>
+                    </div>
+                    <span className={cn(
+                      "text-xs px-2.5 py-0.5 rounded-md font-sans border flex-shrink-0",
+                      isActive 
+                        ? "bg-sky-500/20 text-sky-300 border-sky-500/30" 
+                        : "bg-white/5 text-indigo-400 group-hover:text-white group-hover:bg-white/20 border-white/10 group-hover:border-white/20"
+                    )}>
+                      {cat === 'All' ? searchEnginesQueries.length : searchEnginesQueries.filter(q => q.category === cat).length}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Main Content Area */}
+            <div className="md:col-span-8 lg:col-span-9 space-y-6">
+              <div className={cn("flex flex-col md:flex-row justify-between items-start md:items-center gap-4", language === 'ar' && "md:flex-row-reverse")}>
+                 <div>
+                    <h2 className={cn("text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400", language === 'ar' && "text-right")}>
+                      {language === 'en' ? 'Shodan & FOFA' : 'شودان وفوفا'}
+                    </h2>
+                    <p className={cn("text-indigo-300/70 font-sans mt-1", language === 'ar' && "text-right")}>
+                      {language === 'en' ? 'Advanced IoT and web search engine queries' : 'استعلامات بحث متقدمة لمحركات بحث الويب وإنترنت الأشياء'}
+                    </p>
+                 </div>
+                 <div className={cn("flex w-full md:w-auto", language === 'ar' && "justify-end")}>
+                   <button
+                      onClick={() => { setIsAddingSearchQuery(true); setEditingSearchQuery(null); setNewSearchQueryName(''); setNewSearchQueryStr(''); setNewSearchQueryCategory(selectedSearchQueryCategory === 'All' ? '' : selectedSearchQueryCategory); setNewSearchQueryDescription(''); setNewSearchQueryEngine('Shodan'); }}
+                      className={cn("flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white rounded-lg font-sans transition-all shadow-lg shadow-sky-500/20", language === 'ar' && "flex-row-reverse")}
+                    >
+                      <Plus className="w-4 h-4" />
+                      {language === 'en' ? 'Add Query' : 'إضافة الاستعلام'}
+                    </button>
+                 </div>
+              </div>
+
+            {/* Add/Edit Query Form */}
+            <AnimatePresence>
+              {isAddingSearchQuery && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-white/5 backdrop-blur-md border border-sky-500/30 rounded-2xl p-6 overflow-hidden shadow-2xl"
+                >
+                  <div className="flex flex-col gap-5">
+                    <div className={cn("flex flex-col md:flex-row gap-4", language === 'ar' && "md:flex-row-reverse")}>
+                      <div className={cn("flex-1", language === 'ar' && "text-right")}>
+                        <label className="block text-sm font-sans text-indigo-300 mb-1.5 flex items-center gap-2">
+                           {language === 'en' ? 'Query Name' : 'اسم الاستعلام'}
+                        </label>
+                        <input 
+                          type="text" 
+                          value={newSearchQueryName}
+                          onChange={(e) => setNewSearchQueryName(e.target.value)}
+                          placeholder="e.g. Open Webcams"
+                          className={cn("w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/50", language === 'ar' && "text-right")}
+                        />
+                      </div>
+                      <div className={cn("flex-1", language === 'ar' && "text-right")}>
+                        <label className="block text-sm font-sans text-indigo-300 mb-1.5">
+                           {language === 'en' ? 'Engine' : 'محرك البحث'}
+                        </label>
+                        <select
+                          value={newSearchQueryEngine}
+                          onChange={(e) => setNewSearchQueryEngine(e.target.value as 'Shodan' | 'FOFA' | 'Censys')}
+                          className={cn("w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/50 appearance-none", language === 'ar' && "text-right")}
+                        >
+                          <option value="Shodan">Shodan</option>
+                          <option value="FOFA">FOFA</option>
+                          <option value="Censys">Censys</option>
+                        </select>
+                      </div>
+                      <div className={cn("flex-1", language === 'ar' && "text-right")}>
+                        <label className="block text-sm font-sans text-indigo-300 mb-1.5">
+                          {language === 'en' ? 'Category (Optional)' : 'الفئة (اختياري)'}
+                        </label>
+                        <input 
+                          type="text" 
+                          value={newSearchQueryCategory}
+                          onChange={(e) => setNewSearchQueryCategory(e.target.value)}
+                          placeholder={language === 'en' ? "e.g. IoT" : "مثل: سيرفرات"}
+                          className={cn("w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-sans focus:outline-none focus:ring-2 focus:ring-sky-500/50", language === 'ar' && "text-right")}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className={cn("flex-1", language === 'ar' && "text-right")}>
+                      <label className="block text-sm font-sans text-indigo-300 mb-1.5">
+                        {language === 'en' ? 'Query (use {target} for domain)' : 'الاستعلام (استخدم {target} للنطاق)'}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={newSearchQueryStr}
+                        onChange={(e) => setNewSearchQueryStr(e.target.value)}
+                        placeholder="port:80 {target}"
+                        className={cn("w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50", language === 'ar' && "text-right dir-ltr")}
+                      />
+                    </div>
+
+                    <div className={cn("flex-1", language === 'ar' && "text-right")}>
+                      <label className="block text-sm font-sans text-indigo-300 mb-1.5">
+                        {language === 'en' ? 'Description (Optional)' : 'الوصف (اختياري)'}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={newSearchQueryDescription}
+                        onChange={(e) => setNewSearchQueryDescription(e.target.value)}
+                        placeholder={language === 'en' ? "e.g. Finds exposed Webcams" : "مثل: يجد الكاميرات المكشوفة"}
+                        className={cn("w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-sans text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/50", language === 'ar' && "text-right")}
+                      />
+                    </div>
+                    
+                    <div className={cn("flex gap-3 w-full md:w-auto mt-2", language === 'ar' && "flex-row-reverse md:justify-start", language !== 'ar' && "md:justify-end")}>
+                      <button 
+                         onClick={() => { setIsAddingSearchQuery(false); setEditingSearchQuery(null); }}
+                         className="flex-1 md:flex-none px-6 py-2.5 border border-white/10 hover:bg-white/5 rounded-xl text-indigo-300 font-sans text-sm transition-colors flex items-center justify-center gap-2"
+                      >
+                         <X className="w-4 h-4" />
+                         {language === 'en' ? 'Cancel' : 'إلغاء'}
+                      </button>
+                      <button 
+                        onClick={handleSaveSearchQuery}
+                        disabled={!newSearchQueryName.trim() || !newSearchQueryStr.trim()}
+                        className="flex-1 md:flex-none px-6 py-2.5 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-sans text-sm font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20"
+                      >
+                        <Save className="w-4 h-4" />
+                        {language === 'en' ? 'Save Query' : 'حفظ'}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {filteredSearchQueries.map((query) => {
+                const currentTarget = domain || 'example.com';
+                const finalQuery = query.query.replace(/\{target\}/g, currentTarget);
+                const queryId = `shodan-${query.id}`;
+                const isCopied = copiedIndex === queryId;
+
+                const getSearchUrl = () => {
+                  if (query.engine === 'FOFA') {
+                    return `https://fofa.info/result?qbase64=${btoa(unescape(encodeURIComponent(finalQuery)))}`;
+                  }
+                  if (query.engine === 'Censys') {
+                    return `https://search.censys.io/search?resource=hosts&sort=RELEVANCE&per_page=25&virtual_hosts=EXCLUDE&q=${encodeURIComponent(finalQuery)}`;
+                  }
+                  return `https://www.shodan.io/search?query=${encodeURIComponent(finalQuery)}`;
+                };
+
+                return (
+                   <div key={query.id} className="group relative overflow-hidden rounded-2xl border border-white/5 bg-black/20 hover:border-sky-500/30 transition-all flex flex-col shadow-lg backdrop-blur-sm">
+                     <div className={cn("flex items-center justify-between px-5 py-3 border-b border-white/5 bg-white/5", language === 'ar' && "flex-row-reverse")}>
+                        <div className={cn("flex flex-wrap items-center gap-2.5", language === 'ar' && "flex-row-reverse")}>
+                           <Globe2 className="w-4 h-4 text-sky-400" />
+                           <span className="text-sm font-bold text-indigo-100 font-sans tracking-wide">{query.name}</span>
+                           {query.category && (
+                             <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20 font-sans font-medium uppercase tracking-wider">
+                               {query.category}
+                             </span>
+                           )}
+                           <span className={cn(
+                             "text-[10px] px-2.5 py-0.5 rounded-full font-sans font-medium uppercase tracking-wider",
+                             query.engine === 'Shodan' ? "bg-red-500/10 border border-red-500/20 text-red-400" :
+                             query.engine === 'FOFA' ? "bg-blue-500/10 border border-blue-500/20 text-blue-400" :
+                             "bg-orange-500/10 border border-orange-500/20 text-orange-400"
+                           )}>
+                             {query.engine}
+                           </span>
+                        </div>
+                        
+                        <div className={cn("flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity", language === 'ar' && "flex-row-reverse")}>
+                           {query.isCustom && (
+                             <>
+                               <button onClick={() => startEditSearchQuery(query)} className="p-1.5 text-indigo-400 hover:text-white hover:bg-white/10 rounded-md transition-colors" title="Edit">
+                                 <Edit2 className="w-3.5 h-3.5" />
+                               </button>
+                               <button onClick={() => deleteSearchQuery(query.id)} className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-md transition-colors" title="Delete">
+                                 <Trash2 className="w-3.5 h-3.5" />
+                               </button>
+                               <div className="w-px h-4 bg-white/10 mx-1"></div>
+                             </>
+                           )}
+                           <button
+                             onClick={() => window.open(getSearchUrl(), '_blank')}
+                             className="text-xs px-2.5 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/20 rounded-md font-sans transition-all flex items-center gap-1.5"
+                             title="Search"
+                           >
+                             <SearchIcon className="w-3 h-3" />
+                             {language === 'en' ? 'Open' : 'فتح'}
+                           </button>
+                        </div>
+                     </div>
+                     
+                     <div className={cn("p-5 flex-1 flex flex-col justify-between gap-5", language === 'ar' && "text-right")}>
+                       <div className="flex flex-col gap-3">
+                         <span className="bg-black/40 p-3 rounded-xl border border-white/5 font-mono text-sm text-sky-300 break-all leading-relaxed">
+                            {finalQuery}
+                         </span>
+                         {query.description && (
+                           <p className="text-sm text-indigo-300/80 font-sans flex items-start gap-2">
+                             <span className="w-1.5 h-1.5 rounded-full bg-sky-500/50 mt-1.5 flex-shrink-0" />
+                             {query.description}
+                           </p>
+                         )}
+                       </div>
+                       
+                       <div className={cn("flex justify-end", language === 'ar' && "justify-start")}>
+                         <button
+                            onClick={() => handleCopy(finalQuery, queryId)}
+                            className={cn(
+                              "flex items-center gap-2 text-sm px-4 py-2 rounded-xl transition-all font-sans font-medium",
+                              language === 'ar' && "flex-row-reverse",
+                              isCopied 
+                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]" 
+                                : "bg-white/5 text-indigo-200 hover:bg-white/10 hover:text-white"
+                            )}
+                          >
+                            {isCopied ? (
+                              <><Check className="w-4 h-4" /> {language === 'en' ? 'Copied!' : 'تم النسخ!'}</>
+                            ) : (
+                              <><Copy className="w-4 h-4" /> {language === 'en' ? 'Copy Query' : 'نسخ الاستعلام'}</>
+                            )}
+                          </button>
+                       </div>
+                     </div>
+                   </div>
+                );
+              })}
+            </div>
+            
+             </div> {/* End Main Content Area */}
           </div>
         )}
 

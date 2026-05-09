@@ -233,6 +233,8 @@ export const defaultCommandsData: CommandCategory[] = [
           { id: 'trufflehog', tool: 'TruffleHog', cmdTemplate: `trufflehog filesystem --no-verification js_files.txt` },
           { id: 'mantra', tool: 'Mantra', cmdTemplate: `cat js_files.txt | mantra` },
           { id: 'jsluice', tool: 'jsluice', cmdTemplate: `cat js_files.txt | xargs -I % sh -c 'curl -s "%" | jsluice urls'` },
+          { id: 'nuclei-js-secrets', tool: 'Nuclei (JS Secrets)', cmdTemplate: `cat js_files.txt | nuclei -tags token,secret,exposure,config,api -bs 50` },
+          { id: 'nuclei-js-info', tool: 'Nuclei (JS Exposures)', cmdTemplate: `cat js_files.txt | nuclei -t http/exposures/tokens/ -t http/exposures/configs/ -t http/get-javascript-info.yaml` },
       ],
   },
   {
