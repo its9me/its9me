@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Play, Copy, Terminal, Server, Globe2, Shield, Search, Database, Target, Github, Plus, Edit2, Trash2, Check, X, Search as SearchIcon, FileCode, Link, Save, BookOpen, Layers } from 'lucide-react';
+import { Play, Copy, Terminal, Server, Globe2, Shield, Search, Database, Target, Github, Plus, Edit2, Trash2, Check, X, Search as SearchIcon, FileCode, Link, Save, BookOpen, Layers, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 import { defaultCommandsData, CommandCategory, Command } from './data/commands';
@@ -7,14 +7,17 @@ import { defaultDorks, Dork } from './data/dorks';
 import { defaultPayloads, Payload } from './data/payloads';
 import { defaultMethodology, MethodologyTopic } from './data/methodology';
 import { defaultSearchQueries, SearchQuery } from './data/searchEngines';
+import { WriteupInfo, defaultWriteups } from './data/writeups';
+import { SpaceMindMap } from './components/SpaceMindMap';
+import { NucleiPage } from './components/NucleiPage';
 
 const Icons: Record<string, React.ElementType> = {
-  Globe2, Search, Terminal, Server, Database, Shield, Play, Target, BookOpen, Layers
+  Globe2, Search, Terminal, Server, Database, Shield, Play, Target, BookOpen, Layers, Brain
 };
 
 const ReconApp = () => {
   const [domain, setDomain] = useState('');
-  const [activeTab, setActiveTab] = useState<'commands' | 'dorks' | 'payloads' | 'methodology' | 'search_engines'>('commands');
+  const [activeTab, setActiveTab] = useState<'commands' | 'nuclei' | 'dorks' | 'payloads' | 'methodology' | 'search_engines' | 'writeups'>('commands');
   const [activeCategory, setActiveCategory] = useState<number | null>(0);
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
   const [language, setLanguage] = useState<'en' | 'ar'>('en');
@@ -242,6 +245,78 @@ const ReconApp = () => {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
+  // --- Writeups State ---
+  const [writeups, setWriteups] = useState<WriteupInfo[]>(() => {
+    try {
+      const saved = localStorage.getItem('writeups_v1');
+      if (saved) {
+        return [...defaultWriteups, ...JSON.parse(saved)];
+      }
+    } catch (e) {
+      console.warn("localStorage is not available");
+    }
+    return defaultWriteups;
+  });
+
+  const [isAddingWriteup, setIsAddingWriteup] = useState(false);
+  const [newWriteupText, setNewWriteupText] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const customWriteups = writeups.filter(w => !defaultWriteups.some(d => d.id === w.id));
+      localStorage.setItem('writeups_v1', JSON.stringify(customWriteups));
+    } catch (e) {}
+  }, [writeups]);
+
+  const handleAnalyzeWriteup = async () => {
+    if (!newWriteupText.trim()) return;
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    try {
+      const input = newWriteupText.trim();
+      const isUrl = /^https?:\/\//i.test(input) && !input.includes('\n');
+      const payload = isUrl ? { targetUrl: input } : { text: input };
+
+      const response = await fetch('/api/analyze-writeup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to analyze writeup');
+      }
+      
+      const newWriteup: WriteupInfo = {
+        id: Date.now().toString(),
+        title: data.title || 'Untitled Writeup',
+        titleAr: data.titleAr || data.title,
+        vulnerabilities: data.vulnerabilities || [],
+        vulnerabilitiesAr: data.vulnerabilitiesAr || data.vulnerabilities || [],
+        tools: data.tools || [],
+        methodology: data.methodology || [],
+        methodologyAr: data.methodologyAr || data.methodology || [],
+        keyTakeaways: data.keyTakeaways || [],
+        keyTakeawaysAr: data.keyTakeawaysAr || data.keyTakeaways || [],
+        dateAdded: Date.now()
+      };
+
+      setWriteups([newWriteup, ...writeups]);
+      setNewWriteupText('');
+      setIsAddingWriteup(false);
+    } catch (err: any) {
+      setAnalysisError(err.message || 'Error occurred while analyzing');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const deleteWriteup = (id: string) => {
+    setWriteups(writeups.filter(w => w.id !== id));
+  };
+  
   // --- Handlers for Commands ---
   const startEditCommand = (catId: string, cmd: Command) => {
     setEditingCommandPath({ catId, cmdId: cmd.id });
@@ -420,6 +495,16 @@ const ReconApp = () => {
                {language === 'en' ? 'Recon Commands' : 'أوامر الاستطلاع'}
              </button>
              <button
+               onClick={() => setActiveTab('nuclei')}
+               className={cn(
+                 "px-4 py-2 border-b-2 font-sans font-medium transition-all text-sm uppercase tracking-wider flex items-center gap-2",
+                 activeTab === 'nuclei' ? "border-rose-400 text-rose-300" : "border-transparent text-indigo-300/70 hover:text-indigo-200"
+               )}
+             >
+               <Target className="w-4 h-4" />
+               {language === 'en' ? 'Nuclei Platform' : 'منصة نيوكلي'}
+             </button>
+             <button
                onClick={() => setActiveTab('methodology')}
                className={cn(
                  "px-4 py-2 border-b-2 font-sans font-medium transition-all text-sm uppercase tracking-wider flex items-center gap-2",
@@ -459,12 +544,26 @@ const ReconApp = () => {
                <FileCode className="w-4 h-4" />
                {language === 'en' ? 'Web Payloads' : 'بايلودات الويب'}
              </button>
+             <button
+               onClick={() => setActiveTab('writeups')}
+               className={cn(
+                 "px-4 py-2 border-b-2 font-sans font-medium transition-all text-sm uppercase tracking-wider flex items-center gap-2",
+                 activeTab === 'writeups' ? "border-purple-400 text-purple-300" : "border-transparent text-indigo-300/70 hover:text-indigo-200"
+               )}
+             >
+               <Brain className="w-4 h-4" />
+               {language === 'en' ? 'Writeups (AI)' : 'الرايت اب (ذكاء اصطناعي)'}
+             </button>
            </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
+
+        {activeTab === 'nuclei' && (
+          <NucleiPage language={language} domain={domain} />
+        )}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/20 blur-[150px] -z-10 rounded-full pointer-events-none"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-fuchsia-600/20 blur-[150px] -z-10 rounded-full pointer-events-none"></div>
 
@@ -1514,6 +1613,101 @@ const ReconApp = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+          </div>
+        )}
+
+        {/* Writeups Tab (AI Mind Map) */}
+        {activeTab === 'writeups' && (
+          <div className="space-y-6">
+            <div className={cn("flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6", language === 'ar' && "md:flex-row-reverse")}>
+              <div>
+                <h2 className={cn("text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400", language === 'ar' && "text-right")}>
+                  {language === 'en' ? 'Writeups Mind Map' : 'خريطة الرايت اب الذهنية'}
+                </h2>
+                <p className={cn("text-indigo-300/70 font-sans mt-1", language === 'ar' && "text-right")}>
+                  {language === 'en' ? 'Analyze bug bounty writeups with AI and map them to methodologies.' : 'حلل مقالات اكتشاف الثغرات باستخدام الذكاء الاصطناعي.'}
+                </p>
+              </div>
+              <div className={cn("flex w-full md:w-auto", language === 'ar' && "justify-end")}>
+                <button
+                  onClick={() => setIsAddingWriteup(!isAddingWriteup)}
+                  className={cn("flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg font-sans transition-all shadow-lg shadow-purple-500/20", language === 'ar' && "flex-row-reverse")}
+                >
+                  {isAddingWriteup ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                  {language === 'en' ? (isAddingWriteup ? 'Cancel' : 'Add Writeup') : (isAddingWriteup ? 'إلغاء' : 'إضافة رايت اب')}
+                </button>
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {isAddingWriteup && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-white/5 backdrop-blur-md border border-purple-500/30 rounded-2xl p-6 overflow-hidden shadow-2xl mb-6"
+                >
+                  <div className="flex flex-col gap-5">
+                    <div className={cn("flex-1", language === 'ar' && "text-right")}>
+                      <label className="block text-sm font-sans text-indigo-300 mb-1.5 flex items-center gap-2 font-semibold">
+                        <Brain className="w-4 h-4 text-purple-400" />
+                        {language === 'en' ? 'Paste Writeup Text or URL' : 'لصق نص أو رابط الرايت اب'}
+                      </label>
+                      <textarea
+                        value={newWriteupText}
+                        onChange={(e) => setNewWriteupText(e.target.value)}
+                        placeholder={language === 'en' ? "Paste the full text or URL of the bug bounty article here..." : "قم بلصق رابط (URL) أو نص المقال بالكامل هنا..."}
+                        rows={8}
+                        className={cn("w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white font-sans focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-y", language === 'ar' && "text-right")}
+                      />
+                    </div>
+                    {analysisError && (
+                      <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-200 text-sm">
+                        {analysisError}
+                      </div>
+                    )}
+                    <div className={cn("flex justify-end gap-3", language === 'ar' && "flex-row-reverse justify-start")}>
+                      <button
+                        onClick={handleAnalyzeWriteup}
+                        disabled={isAnalyzing || !newWriteupText.trim()}
+                        className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-sans text-sm font-medium transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20"
+                      >
+                        {isAnalyzing ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <Brain className="w-4 h-4" />
+                        )}
+                        {language === 'en' ? (isAnalyzing ? 'Analyzing...' : 'Analyze with AI') : (isAnalyzing ? 'جاري التحليل...' : 'تحليل بالذكاء الاصطناعي')}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {!isAddingWriteup && writeups.length > 0 && (
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 flex items-start gap-3 mb-6">
+                 <Brain className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                 <p className={cn("text-purple-200 text-sm leading-relaxed", language === 'ar' && "text-right")}>
+                   {language === 'en' 
+                     ? 'You can now paste a URL directly into the "Add Writeup" box, and the AI will automatically fetch and analyze it!' 
+                     : 'يمكنك الآن لصق رابط (URL) المقالة مباشرة في مربع "إضافة رايت اب" وسيقوم الذكاء الاصطناعي بجلبها وتحليلها تلقائياً!'}
+                 </p>
+              </div>
+            )}
+
+            <div className="mt-8">
+              {writeups.length === 0 ? (
+                <div className="text-center py-12 px-4 border border-dashed border-white/10 rounded-2xl bg-white/5">
+                  <Brain className="w-12 h-12 text-indigo-500/50 mx-auto mb-3" />
+                  <p className="text-indigo-300 font-sans">
+                    {language === 'en' ? 'No writeups added yet. Add one to build your mind map.' : 'لم تتم إضافة أي مقالات بعد. أضف مقالاً لبناء خريطتك الذهنية.'}
+                  </p>
+                </div>
+              ) : (
+                <SpaceMindMap writeups={writeups} language={language} onDelete={deleteWriteup} />
+              )}
             </div>
           </div>
         )}

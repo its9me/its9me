@@ -41,6 +41,48 @@ export const defaultSearchQueries: SearchQuery[] = [
   { id: '27', name: 'PhpMyAdmin', query: 'domain="{target}" && app="phpMyAdmin"', engine: 'FOFA', category: 'Databases', description: 'Finds exposed PhpMyAdmin panels.' },
 
   // Censys Default Queries
-  { id: '28', name: 'Exposed AWS Keys', query: 'services.http.response.body: "AKIA" and services.tls.certificates.leaf_data.names: "{target}"', engine: 'Censys', category: 'Source Code Leaks', description: 'Finds exposed AWS Access Keys.' },
-  { id: '29', name: 'Open Docker API', query: 'services.port: 2375 and services.software.vendor: "Docker" and services.tls.certificates.leaf_data.names: "{target}"', engine: 'Censys', category: 'DevOps', description: 'Finds exposed Docker APIs.' }
+  { id: '28', name: 'Exposed AWS Keys', query: 'host.services.http.response.body:"AKIA" and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Source Code Leaks', description: 'Finds exposed AWS Access Keys.' },
+  { id: '29', name: 'Open Docker API', query: 'host.services.port:"2375" and (host.services.software.vendor:"Docker" or host.services.hardware.vendor:"Docker" or host.services.operating_systems.vendor:"Docker") and host.services.cert.names:"{target}"', engine: 'Censys', category: 'DevOps', description: 'Finds exposed Docker APIs.' },
+  
+  // Extra Shodan
+  { id: '30', name: 'Exposed Kubernetes', query: 'port:6443 "kubernetes" hostname:"{target}"', engine: 'Shodan', category: 'DevOps', description: 'Finds exposed Kubernetes API servers.' },
+  { id: '31', name: 'Exposed Docker API', query: 'port:2375 "Docker" hostname:"{target}"', engine: 'Shodan', category: 'DevOps', description: 'Finds exposed Docker daemon APIs.' },
+  { id: '32', name: 'Exposed RabbitMQ', query: 'port:15672 "RabbitMQ Management" hostname:"{target}"', engine: 'Shodan', category: 'Message Brokers', description: 'Finds exposed RabbitMQ management panels.' },
+  { id: '33', name: 'Exposed Kafka', query: 'port:9092 "Kafka" hostname:"{target}"', engine: 'Shodan', category: 'Message Brokers', description: 'Finds exposed Kafka message brokers.' },
+  { id: '34', name: 'Exposed MySQL', query: 'port:3306 "MySQL" hostname:"{target}"', engine: 'Shodan', category: 'Databases', description: 'Finds exposed MySQL databases.' },
+  { id: '35', name: 'Exposed PostgreSQL', query: 'port:5432 "PostgreSQL" hostname:"{target}"', engine: 'Shodan', category: 'Databases', description: 'Finds exposed PostgreSQL databases.' },
+  { id: '36', name: 'Exposed SSH', query: 'port:22 "SSH" hostname:"{target}"', engine: 'Shodan', category: 'Remote Access', description: 'Finds exposed SSH services.' },
+  { id: '37', name: 'Exposed Telnet', query: 'port:23 hostname:"{target}"', engine: 'Shodan', category: 'Remote Access', description: 'Finds exposed Telnet services.' },
+  { id: '38', name: 'Default Tomcat Manager', query: 'http.title:"Tomcat Web Application Manager" hostname:"{target}"', engine: 'Shodan', category: 'Web Servers', description: 'Finds exposed Tomcat Manager panels.' },
+  { id: '39', name: 'Exposed WebLogic', query: 'port:7001 "WebLogic" hostname:"{target}"', engine: 'Shodan', category: 'Web Servers', description: 'Finds exposed WebLogic servers.' },
+  { id: '40', name: 'Exposed JBoss', query: 'port:8080 "JBoss" hostname:"{target}"', engine: 'Shodan', category: 'Web Servers', description: 'Finds exposed JBoss servers.' },
+  { id: '41', name: 'Exposed Exchange / OWA', query: '"Outlook Web Access" hostname:"{target}"', engine: 'Shodan', category: 'Email', description: 'Finds Microsoft Exchange / OWA logins.' },
+
+  // Extra FOFA
+  { id: '42', name: 'Swagger UI', query: 'domain="{target}" && (title="Swagger UI" || body="swagger-ui")', engine: 'FOFA', category: 'API Docs', description: 'Finds exposed Swagger UI documentation.' },
+  { id: '43', name: 'SonarQube', query: 'domain="{target}" && app="SonarQube"', engine: 'FOFA', category: 'CI/CD', description: 'Finds exposed SonarQube instances.' },
+  { id: '44', name: 'RabbitMQ', query: 'domain="{target}" && app="RabbitMQ"', engine: 'FOFA', category: 'Message Brokers', description: 'Finds exposed RabbitMQ panels.' },
+  { id: '45', name: 'Grafana', query: 'domain="{target}" && app="Grafana"', engine: 'FOFA', category: 'Monitoring', description: 'Finds exposed Grafana panels.' },
+  { id: '46', name: 'Kibana', query: 'domain="{target}" && app="Elastic-Kibana"', engine: 'FOFA', category: 'Monitoring', description: 'Finds exposed Kibana panels.' },
+  { id: '47', name: 'Jenkins', query: 'domain="{target}" && app="Jenkins"', engine: 'FOFA', category: 'CI/CD', description: 'Finds exposed Jenkins panels.' },
+  { id: '48', name: 'GitLab', query: 'domain="{target}" && app="GitLab"', engine: 'FOFA', category: 'CI/CD', description: 'Finds exposed GitLab instances.' },
+  { id: '49', name: 'MinIO', query: 'domain="{target}" && app="MinIO"', engine: 'FOFA', category: 'Cloud Storage', description: 'Finds exposed MinIO storage servers.' },
+  { id: '50', name: 'Vue/React Dev Mode', query: 'domain="{target}" && (title="Webpack App" || title="React App" || title="Vue App")', engine: 'FOFA', category: 'Web Servers', description: 'Finds frontend dev servers.' },
+  { id: '51', name: 'PHPInfo', query: 'domain="{target}" && title="phpinfo()"', engine: 'FOFA', category: 'Info Leak', description: 'Finds exposed phpinfo() pages.' },
+  { id: '52', name: 'Config Leak', query: 'domain="{target}" && (body="DB_USER=" || body="aws_access_key_id")', engine: 'FOFA', category: 'Source Code Leaks', description: 'Finds leaked config files.' },
+  { id: '53', name: 'VPN Portals', query: 'domain="{target}" && (app="PulseSecure-SSL-VPN" || app="Fortinet-FortiGate" || app="PaloAlto-GlobalProtect")', engine: 'FOFA', category: 'Remote Access', description: 'Finds VPN entry points.' },
+
+  // Extra Censys
+  { id: '54', name: 'MySQL Databases', query: 'host.services.port:3306 and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Databases', description: 'Finds exposed MySQL databases.' },
+  { id: '55', name: 'PostgreSQL Databases', query: 'host.services.port:5432 and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Databases', description: 'Finds exposed PostgreSQL databases.' },
+  { id: '56', name: 'MongoDB Databases', query: 'host.services.port:27017 and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Databases', description: 'Finds exposed MongoDB databases.' },
+  { id: '57', name: 'Elasticsearch', query: 'host.services.port:9200 and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Databases', description: 'Finds exposed Elasticsearch databases.' },
+  { id: '58', name: 'Redis', query: 'host.services.port:6379 and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Databases', description: 'Finds exposed Redis instances.' },
+  { id: '59', name: 'SSH Services', query: 'host.services.port:22 and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Remote Access', description: 'Finds SSH services running on domains holding the cert.' },
+  { id: '60', name: 'Exposed SMTP', query: 'host.services.port:25 and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Email', description: 'Finds exposed SMTP services.' },
+  { id: '61', name: 'Exposed RDP', query: 'host.services.port:3389 and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Remote Access', description: 'Finds Remote Desktop Protocol services.' },
+  { id: '62', name: 'Jenkins', query: 'host.services.http.response.html_title:"Dashboard [Jenkins]" and host.services.cert.names:"{target}"', engine: 'Censys', category: 'CI/CD', description: 'Finds Jenkins CI servers.' },
+  { id: '63', name: 'Grafana', query: 'host.services.http.response.html_title:"Grafana" and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Monitoring', description: 'Finds Grafana monitoring servers.' },
+  { id: '64', name: 'Jira Software', query: 'host.services.http.response.html_title:"Jira" and host.services.cert.names:"{target}"', engine: 'Censys', category: 'Tracking', description: 'Finds Atlassian Jira instances.' },
+  { id: '65', name: 'Exposed FTP', query: 'host.services.port:21 and host.services.cert.names:"{target}"', engine: 'Censys', category: 'File Sharing', description: 'Finds exposed FTP services.' },
 ];
