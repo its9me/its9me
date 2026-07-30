@@ -10,6 +10,7 @@ import { defaultSearchQueries, SearchQuery } from './data/searchEngines';
 import { WriteupInfo, defaultWriteups } from './data/writeups';
 import { SpaceMindMap } from './components/SpaceMindMap';
 import { NucleiPage } from './components/NucleiPage';
+import { RecoxScanner } from './components/RecoxScanner';
 
 const Icons: Record<string, React.ElementType> = {
   Globe2, Search, Terminal, Server, Database, Shield, Play, Target, BookOpen, Layers, Brain
@@ -17,7 +18,7 @@ const Icons: Record<string, React.ElementType> = {
 
 const ReconApp = () => {
   const [domain, setDomain] = useState('');
-  const [activeTab, setActiveTab] = useState<'commands' | 'nuclei' | 'dorks' | 'payloads' | 'methodology' | 'search_engines' | 'writeups'>('commands');
+  const [activeTab, setActiveTab] = useState<'commands' | 'nuclei' | 'recox' | 'dorks' | 'payloads' | 'methodology' | 'search_engines' | 'writeups'>('commands');
   const [activeCategory, setActiveCategory] = useState<number | null>(0);
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
   const [language, setLanguage] = useState<'en' | 'ar'>('en');
@@ -428,7 +429,7 @@ const ReconApp = () => {
   return (
     <div className={cn("min-h-screen text-gray-200 font-mono selection:bg-cyan-500/30 selection:text-cyan-200 shadow-xl", language === 'ar' ? 'dir-rtl' : 'dir-ltr')}>
       {/* Header */}
-      <header className="border-b border-white/5 bg-indigo-950/20 backdrop-blur-xl sticky top-0 z-50 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
+      <header className="border-b border-white/5 bg-indigo-950/20 backdrop-blur-xl relative z-40 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
@@ -503,6 +504,16 @@ const ReconApp = () => {
              >
                <Target className="w-4 h-4" />
                {language === 'en' ? 'Nuclei Platform' : 'منصة نيوكلي'}
+              </button>
+              <button
+                onClick={() => setActiveTab('recox')}
+                className={cn(
+                  "px-4 py-2 border-b-2 font-sans font-medium transition-all text-sm uppercase tracking-wider flex items-center gap-2",
+                  activeTab === 'recox' ? "border-indigo-400 text-indigo-300" : "border-transparent text-indigo-300/70 hover:text-indigo-200"
+                )}
+              >
+                <Globe2 className="w-4 h-4" />
+                {language === 'en' ? 'RECOX Scanner' : 'فاحص RECOX'}
              </button>
              <button
                onClick={() => setActiveTab('methodology')}
@@ -563,6 +574,10 @@ const ReconApp = () => {
 
         {activeTab === 'nuclei' && (
           <NucleiPage language={language} domain={domain} />
+        )}
+
+        {activeTab === 'recox' && (
+          <RecoxScanner language={language} initialDomain={domain} />
         )}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/20 blur-[150px] -z-10 rounded-full pointer-events-none"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-fuchsia-600/20 blur-[150px] -z-10 rounded-full pointer-events-none"></div>
